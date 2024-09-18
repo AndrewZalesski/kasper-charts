@@ -1,7 +1,7 @@
 {
   "name": "kasper-heroku-backend",
   "version": "1.0.0",
-  "description": "Backend for Kasper project fetching and storing prices in Google Sheets",
+  "description": "Backend for Kasper price fetching and storing",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
