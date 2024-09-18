@@ -141,11 +141,14 @@ async function backfillMarketCap() {
     const updatedRows = [];
 
     // Calculate market cap for each row
-    for (let row of rows) {
-      const [timestamp, floorPrice] = row;
-      if (!row[2]) { // If no market cap exists for this row
+    for (let i = 0; i < rows.length; i++) {
+      const [timestamp, floorPrice] = rows[i];
+      if (!rows[i][2]) { // If no market cap exists for this row
         const marketCap = (28700000000 * parseFloat(floorPrice) * kaspaPrice).toFixed(5);
         updatedRows.push([timestamp, floorPrice, marketCap]); // Add market cap to each row
+        console.log(`Backfilling row ${i}: Timestamp: ${timestamp}, Floor Price: ${floorPrice}, Market Cap: ${marketCap}`);
+      } else {
+        updatedRows.push(rows[i]); // Keep existing row if market cap is already filled
       }
     }
 
@@ -160,6 +163,8 @@ async function backfillMarketCap() {
         },
       });
       console.log('Backfilled market cap for old data.');
+    } else {
+      console.log('No rows to backfill.');
     }
   } catch (error) {
     console.error('Error backfilling market cap:', error);
