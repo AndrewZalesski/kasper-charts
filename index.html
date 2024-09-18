@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kasper Price Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+
+        canvas {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .buttons {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            margin: 0 10px;
+            padding: 10px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kasper Price Chart</h1>
+    <div class="buttons">
+        <button onclick="loadData('1h')">1 Hour</button>
+        <button onclick="loadData('3h')">3 Hours</button>
+        <button onclick="loadData('1d')">1 Day</button>
+        <button onclick="loadData('7d')">7 Days</button>
+        <button onclick="loadData('1m')">1 Month</button>
+    </div>
+    <canvas id="priceChart"></canvas>
+
+    <script src="app.js"></script>
+</body>
+</html>
