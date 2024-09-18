@@ -7,8 +7,7 @@ const port = process.env.PORT || 3000;
 // Set up Google Sheets authentication using environment variables
 const auth = new google.auth.GoogleAuth({
   credentials: {
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\n/g, '
-'), // Handle line breaks in the private key
+    private_key: process.env.GOOGLE_PRIVATE_KEY, // Directly using the private key
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
   },
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
