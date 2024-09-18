@@ -1,25 +1,23 @@
 const { google } = require('googleapis');
 const axios = require('axios');
 const express = require('express');
-const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Load Google Sheets API credentials
-const credentials = JSON.parse(fs.readFileSync('path-to-your-credentials.json'));
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-
+// Set up Google Sheets authentication using environment variables
 const auth = new google.auth.GoogleAuth({
-  credentials,
-  scopes: SCOPES,
+  credentials: {
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle line breaks in the private key
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+  },
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
 const sheets = google.sheets({ version: 'v4', auth });
 
-const SPREADSHEET_ID = 'your-google-sheet-id'; // Replace with your sheet ID
-const SHEET_NAME = 'Sheet1'; // Replace with the actual sheet name
+const SPREADSHEET_ID = '1kjddnz-NfGjnhcla3x4_nomt7boTWDmehYM79YmS2Ks'; // Google Sheet ID
 
-// Function to fetch Kasper floor price
+// Function to fetch Kasper floor price from the API
 async function fetchKasperPrice() {
   const apiUrl = 'https://storage.googleapis.com/kspr-api-v1/marketplace/marketplace.json';
   try {
@@ -38,7 +36,7 @@ async function storePriceInSheet(price) {
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:B`,
+      range: 'Sheet1!A:B',
       valueInputOption: 'USER_ENTERED',
       resource: {
         values: [[timestamp, price]],
@@ -50,7 +48,7 @@ async function storePriceInSheet(price) {
   }
 }
 
-// Function to fetch and store price every 15 minutes
+// Fetch and store price every 15 minutes
 setInterval(async () => {
   const price = await fetchKasperPrice();
   if (price !== null) {
@@ -80,17 +78,17 @@ app.get('/prices', async (req, res) => {
   try {
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:B`,
+      range: 'Sheet1!A:B',
     });
 
     const rows = result.data.values || [];
     const filteredRows = rows.filter(row => new Date(row[0]) >= startDate);
-    res.json(filteredRows.map(row => ({ timestamp: row[0], price: row[1] })));
+    res.json(filteredRows.map(row => { return { timestamp: row[0], price: row[1] }; }));
   } catch (error) {
     console.error('Error fetching data from Google Sheets:', error);
     res.status(500).send('Error fetching data');
   }
-});
+};
 
 // Start the server
 app.listen(port, () => {
