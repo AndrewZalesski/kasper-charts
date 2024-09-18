@@ -1,8 +1,15 @@
 const { google } = require('googleapis');
 const axios = require('axios');
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Allow requests from your domain (replace with the exact domain)
+app.use(cors({
+  origin: 'https://www.kaspercoin.net',
+  methods: ['GET']
+}));
 
 // Set up Google Sheets authentication using environment variables
 const auth = new google.auth.GoogleAuth({
