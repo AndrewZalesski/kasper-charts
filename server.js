@@ -25,6 +25,11 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 const SPREADSHEET_ID = '1kjddnz-NfGjnhcla3x4_nomt7boTWDmehYM79YmS2Ks'; // Google Sheet ID
 
+// Add a root route to handle GET requests to "/"
+app.get('/', (req, res) => {
+  res.send('Welcome to Kasper Price Backend API. Use /prices endpoint to fetch data.');
+});
+
 // Function to fetch Kasper floor price from the API
 async function fetchKasperPrice() {
   const apiUrl = 'https://storage.googleapis.com/kspr-api-v1/marketplace/marketplace.json';
@@ -38,7 +43,7 @@ async function fetchKasperPrice() {
   }
 }
 
-// Function to fetch Kaspa price for market cap calculation
+// Function to fetch Kaspa price for market cap calculation (correct API with stringOnly=false)
 async function fetchKaspaPrice() {
   const apiUrl = 'https://api.kaspa.org/info/price?stringOnly=false';
   try {
@@ -75,52 +80,15 @@ async function storePriceAndMarketCapInSheet(floorPrice) {
   }
 }
 
-// Auto-backfill and update market cap every 30 seconds
-async function autoUpdateMarketCap() {
-  const kaspaPrice = await fetchKaspaPrice();
-  if (!kaspaPrice) {
-    console.error('Kaspa price unavailable');
-    return;
+// Fetch and store price and market cap every 15 minutes
+setInterval(async () => {
+  const floorPrice = await fetchKasperPrice();
+  if (floorPrice !== null) {
+    await storePriceAndMarketCapInSheet(floorPrice);
   }
+}, 900000); // 15 minutes
 
-  try {
-    // Fetch all existing data (timestamps and floor prices), skip the first row (headers)
-    const result = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'Sheet1!A2:C', // Fetch starting from the second row to skip headers
-    });
-
-    const rows = result.data.values || [];
-    const updatedRows = [];
-
-    // Recalculate market cap for each row
-    for (let i = 0; i < rows.length; i++) {
-      const [timestamp, floorPrice] = rows[i];
-      const marketCap = (28700000000 * parseFloat(floorPrice) * kaspaPrice).toFixed(5);
-      updatedRows.push([timestamp, floorPrice, marketCap]); // Add updated market cap
-      console.log(`Updating row ${i + 2}: Timestamp: ${timestamp}, Floor Price: ${floorPrice}, Market Cap: ${marketCap}`);
-    }
-
-    // Update the Google Sheet with the recalculated market caps
-    if (updatedRows.length > 0) {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Sheet1!A2:C', // Update from the second row onwards
-        valueInputOption: 'USER_ENTERED',
-        resource: {
-          values: updatedRows,
-        },
-      });
-      console.log('Updated market cap for all rows.');
-    } else {
-      console.log('No rows to update.');
-    }
-  } catch (error) {
-    console.error('Error updating market cap:', error);
-  }
-}
-
-// Function to fetch price and market cap data for the chart
+// API to fetch historical prices from Google Sheets
 app.get('/prices', async (req, res) => {
   const { range } = req.query;
   let startDate;
@@ -154,8 +122,57 @@ app.get('/prices', async (req, res) => {
   }
 });
 
-// Run the auto-backfill every 30 seconds
-setInterval(autoUpdateMarketCap, 30000);
+// Function to calculate and backfill market cap for old data
+async function backfillMarketCap() {
+  const kaspaPrice = await fetchKaspaPrice();
+  if (!kaspaPrice) {
+    console.error('Kaspa price unavailable');
+    return;
+  }
+
+  try {
+    // Fetch all existing data (timestamps and floor prices)
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Sheet1!A:B',
+    });
+
+    const rows = result.data.values || [];
+    const updatedRows = [];
+
+    // Calculate market cap for each row
+    for (let i = 0; i < rows.length; i++) {
+      const [timestamp, floorPrice] = rows[i];
+      if (!rows[i][2]) { // If no market cap exists for this row
+        const marketCap = (28700000000 * parseFloat(floorPrice) * kaspaPrice).toFixed(5);
+        updatedRows.push([timestamp, floorPrice, marketCap]); // Add market cap to each row
+        console.log(`Backfilling row ${i}: Timestamp: ${timestamp}, Floor Price: ${floorPrice}, Market Cap: ${marketCap}`);
+      } else {
+        updatedRows.push(rows[i]); // Keep existing row if market cap is already filled
+      }
+    }
+
+    // Update Google Sheet with the calculated market caps
+    if (updatedRows.length > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Sheet1!A:C',
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: updatedRows,
+        },
+      });
+      console.log('Backfilled market cap for old data.');
+    } else {
+      console.log('No rows to backfill.');
+    }
+  } catch (error) {
+    console.error('Error backfilling market cap:', error);
+  }
+}
+
+// Automate the backfill every 15 seconds
+setInterval(backfillMarketCap, 15000); // Backfill every 15 seconds
 
 // Start the server
 app.listen(port, () => {
