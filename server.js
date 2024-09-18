@@ -171,8 +171,8 @@ async function backfillMarketCap() {
   }
 }
 
-// Automate the backfill every 15 seconds
-setInterval(backfillMarketCap, 15000); // Backfill every 15 seconds
+// Automate the backfill every 5 seconds
+setInterval(backfillMarketCap, 5000); // Backfill every 5 seconds
 
 // Start the server
 app.listen(port, () => {
