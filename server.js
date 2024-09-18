@@ -1,3 +1,4 @@
+
 const { google } = require('googleapis');
 const axios = require('axios');
 const express = require('express');
@@ -42,29 +43,48 @@ async function fetchKasperPrice() {
   }
 }
 
-// Function to store price in Google Sheets
-async function storePriceInSheet(price) {
+// Function to fetch Kaspa price for market cap calculation
+async function fetchKaspaPrice() {
+  const apiUrl = 'https://api.kaspa.org/price';
+  try {
+    const response = await axios.get(apiUrl);
+    return response.data.price_usd;
+  } catch (error) {
+    console.error('Error fetching Kaspa price:', error);
+    return null;
+  }
+}
+
+// Function to store price and market cap in Google Sheets
+async function storePriceAndMarketCapInSheet(floorPrice) {
   const timestamp = new Date().toISOString();
+  const kaspaPrice = await fetchKaspaPrice();
+  if (!kaspaPrice) {
+    console.error('Kaspa price unavailable');
+    return;
+  }
+
+  const marketCap = (28700000000 * floorPrice * kaspaPrice).toFixed(2); // Market cap calculation
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'Sheet1!A:B',
+      range: 'Sheet1!A:C', // Adding to third column for market cap
       valueInputOption: 'USER_ENTERED',
       resource: {
-        values: [[timestamp, price]],
+        values: [[timestamp, floorPrice, marketCap]], // Add timestamp, floor price, and market cap
       },
     });
-    console.log('Stored price in Google Sheets:', price);
+    console.log('Stored price and market cap in Google Sheets:', floorPrice, marketCap);
   } catch (error) {
     console.error('Error storing data in Google Sheets:', error);
   }
 }
 
-// Fetch and store price every 15 minutes
+// Fetch and store price and market cap every 15 minutes
 setInterval(async () => {
-  const price = await fetchKasperPrice();
-  if (price !== null) {
-    await storePriceInSheet(price);
+  const floorPrice = await fetchKasperPrice();
+  if (floorPrice !== null) {
+    await storePriceAndMarketCapInSheet(floorPrice);
   }
 }, 900000); // 15 minutes
 
@@ -90,12 +110,12 @@ app.get('/prices', async (req, res) => {
   try {
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'Sheet1!A:B',
+      range: 'Sheet1!A:C', // Now includes the third column for market cap
     });
 
     const rows = result.data.values || [];
     const filteredRows = rows.filter(row => new Date(row[0]) >= startDate);
-    res.json(filteredRows.map(row => ({ timestamp: row[0], price: row[1] })));
+    res.json(filteredRows.map(row => ({ timestamp: row[0], price: row[1], marketCap: row[2] }))); // Return price and market cap
   } catch (error) {
     console.error('Error fetching data from Google Sheets:', error);
     res.status(500).send('Error fetching data');
