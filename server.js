@@ -83,7 +83,7 @@ app.get('/prices', async (req, res) => {
 
     const rows = result.data.values || [];
     const filteredRows = rows.filter(row => new Date(row[0]) >= startDate);
-    res.json(filteredRows.map(row => { return { timestamp: row[0], price: row[1] }; }));
+    res.json(filteredRows.map(row => ({ timestamp: row[0], price: row[1] })));
   } catch (error) {
     console.error('Error fetching data from Google Sheets:', error);
     res.status(500).send('Error fetching data');
