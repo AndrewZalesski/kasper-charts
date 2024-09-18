@@ -43,12 +43,12 @@ async function fetchKasperPrice() {
   }
 }
 
-// Function to fetch Kaspa price for market cap calculation
+// Function to fetch Kaspa price for market cap calculation (correct API with stringOnly=false)
 async function fetchKaspaPrice() {
-  const apiUrl = 'https://api.kaspa.org/price';
+  const apiUrl = 'https://api.kaspa.org/info/price?stringOnly=false';
   try {
     const response = await axios.get(apiUrl);
-    return response.data.price_usd;
+    return response.data.price;  // Correctly using the 'price' field from the response
   } catch (error) {
     console.error('Error fetching Kaspa price:', error);
     return null;
