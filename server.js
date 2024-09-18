@@ -64,7 +64,7 @@ async function storePriceAndMarketCapInSheet(floorPrice) {
     return;
   }
 
-  const marketCap = (28700000000 * floorPrice * kaspaPrice).toFixed(2); // Market cap calculation
+  const marketCap = (28700000000 * floorPrice * kaspaPrice).toFixed(5); // 5 decimal places for market cap
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
