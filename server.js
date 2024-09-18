@@ -122,6 +122,60 @@ app.get('/prices', async (req, res) => {
   }
 });
 
+// Function to calculate and backfill market cap for old data
+async function backfillMarketCap() {
+  const kaspaPrice = await fetchKaspaPrice();
+  if (!kaspaPrice) {
+    console.error('Kaspa price unavailable');
+    return;
+  }
+
+  try {
+    // Fetch all existing data (timestamps and floor prices)
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'Sheet1!A:B',
+    });
+
+    const rows = result.data.values || [];
+    const updatedRows = [];
+
+    // Calculate market cap for each row
+    for (let row of rows) {
+      const [timestamp, floorPrice] = row;
+      if (!row[2]) { // If no market cap exists for this row
+        const marketCap = (28700000000 * parseFloat(floorPrice) * kaspaPrice).toFixed(5);
+        updatedRows.push([timestamp, floorPrice, marketCap]); // Add market cap to each row
+      }
+    }
+
+    // Update Google Sheet with the calculated market caps
+    if (updatedRows.length > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Sheet1!A:C',
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: updatedRows,
+        },
+      });
+      console.log('Backfilled market cap for old data.');
+    }
+  } catch (error) {
+    console.error('Error backfilling market cap:', error);
+  }
+}
+
+// Function to trigger backfilling via an endpoint (you can trigger this when necessary)
+app.get('/backfill-marketcap', async (req, res) => {
+  try {
+    await backfillMarketCap();
+    res.send('Backfill completed.');
+  } catch (error) {
+    res.status(500).send('Error during backfill.');
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
