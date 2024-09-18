@@ -88,7 +88,7 @@ app.get('/prices', async (req, res) => {
     console.error('Error fetching data from Google Sheets:', error);
     res.status(500).send('Error fetching data');
   }
-};
+});
 
 // Start the server
 app.listen(port, () => {
