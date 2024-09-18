@@ -7,7 +7,8 @@ const port = process.env.PORT || 3000;
 // Set up Google Sheets authentication using environment variables
 const auth = new google.auth.GoogleAuth({
   credentials: {
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle line breaks in the private key
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\n/g, '
+'), // Handle line breaks in the private key
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
   },
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -16,6 +17,11 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 
 const SPREADSHEET_ID = '1kjddnz-NfGjnhcla3x4_nomt7boTWDmehYM79YmS2Ks'; // Google Sheet ID
+
+// Add a root route to handle GET requests to "/"
+app.get('/', (req, res) => {
+  res.send('Welcome to Kasper Price Backend API. Use /prices endpoint to fetch data.');
+});
 
 // Function to fetch Kasper floor price from the API
 async function fetchKasperPrice() {
@@ -83,7 +89,7 @@ app.get('/prices', async (req, res) => {
 
     const rows = result.data.values || [];
     const filteredRows = rows.filter(row => new Date(row[0]) >= startDate);
-    res.json(filteredRows.map(row => { return { timestamp: row[0], price: row[1] }; }));
+    res.json(filteredRows.map(row => ({ timestamp: row[0], price: row[1] })));
   } catch (error) {
     console.error('Error fetching data from Google Sheets:', error);
     res.status(500).send('Error fetching data');
