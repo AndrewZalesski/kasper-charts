@@ -154,20 +154,8 @@ app.get('/prices', async (req, res) => {
   }
 });
 
-// Fetch and update market cap every 30 seconds
-setInterval(async () => {
-  await autoUpdateMarketCap();
-}, 30000); // 30 seconds
-
-// Function to trigger the auto-update manually via an endpoint
-app.get('/backfill-marketcap', async (req, res) => {
-  try {
-    await autoUpdateMarketCap();
-    res.send('Market cap auto-updated successfully.');
-  } catch (error) {
-    res.status(500).send('Error during market cap update.');
-  }
-});
+// Run the auto-backfill every 30 seconds
+setInterval(autoUpdateMarketCap, 30000);
 
 // Start the server
 app.listen(port, () => {
