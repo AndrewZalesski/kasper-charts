@@ -1,4 +1,5 @@
 
+
 const { google } = require('googleapis');
 const axios = require('axios');
 const express = require('express');
@@ -177,4 +178,24 @@ setInterval(backfillMarketCap, 5000); // Backfill every 5 seconds
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+});
+
+
+// Market cap calculation endpoint (new functionality added)
+app.get('/marketcap', async (req, res) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'MarketCap!A1:B2'  // Assuming market cap data is in A1:B2
+    });
+    const rows = response.data.values;
+    if (rows.length) {
+      const marketCap = rows[1][1];  // Assuming market cap is in the second row, second column
+      res.json({ marketCap });
+    } else {
+      res.status(404).send('No data found.');
+    }
+  } catch (error) {
+    res.status(500).send('Error fetching market cap data.');
+  }
 });
